@@ -35,3 +35,14 @@ export function scanTarget(target: ScanTarget, rules: Rule[]): ScanResult {
 
 /** Back-compat alias — skills are just one kind of scan target. */
 export const scanSkill = scanTarget;
+
+/**
+ * Add findings produced outside the rule engine (e.g. pinning / rug-pull
+ * checks) and recompute the score and verdict.
+ */
+export function appendFindings(result: ScanResult, extra: Finding[]): ScanResult {
+  if (extra.length === 0) return result;
+  const findings = [...result.findings, ...extra];
+  const score = scoreFindings(findings);
+  return { ...result, findings, score, verdict: verdictFor(findings, score) };
+}

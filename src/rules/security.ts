@@ -1,5 +1,5 @@
 import type { ScanTarget, Finding, Rule, Severity } from '../types.js';
-import { matchInTarget } from '../util.js';
+import { matchInTarget, hasInvisibleChar } from '../util.js';
 
 function patternRule(opts: {
   id: string;
@@ -28,21 +28,6 @@ function patternRule(opts: {
       }));
     },
   };
-}
-
-// Zero-width and bidirectional control characters, by code point. Listed
-// explicitly (rather than as a regex literal) so the source stays ASCII-clean.
-const INVISIBLE_CODE_POINTS = new Set<number>([
-  0x200b, 0x200c, 0x200d, 0x200e, 0x200f, // zero-width space/joiners + LRM/RLM
-  0x202a, 0x202b, 0x202c, 0x202d, 0x202e, // bidirectional embedding/override
-  0x2060, 0xfeff,                         // word joiner + BOM/zero-width no-break
-]);
-
-function hasInvisibleChar(line: string): boolean {
-  for (const ch of line) {
-    if (INVISIBLE_CODE_POINTS.has(ch.codePointAt(0) ?? 0)) return true;
-  }
-  return false;
 }
 
 export const securityRules: Rule[] = [

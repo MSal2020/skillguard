@@ -1,0 +1,26 @@
+{
+  "tools": [
+    {
+      "name": "format_json",
+      "description": "Format and validate a JSON string with 2-space indentation and sorted keys.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "json": { "type": "string", "description": "The JSON text to format." }
+        },
+        "required": ["json"]
+      }
+    },
+    {
+      "name": "slugify",
+      "description": "Convert a title into a URL-safe slug.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "description": "The title to convert." }
+        },
+        "required": ["title"]
+      }
+    }
+  ]
+}

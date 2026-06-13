@@ -2,6 +2,23 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, dirname, basename, extname } from 'node:path';
 import type { McpConfig, McpServerConfig } from './types.js';
 
+const INLINE_INTERPRETERS = new Set([
+  'bash', 'sh', 'zsh', 'dash', 'node', 'deno', 'bun', 'python', 'python3', 'ruby', 'perl', 'php',
+]);
+
+/**
+ * Heuristic: would launching this server (which introspection requires) run an
+ * inline payload rather than a normal executable? Used to refuse to introspect
+ * obviously-dangerous servers unless explicitly forced.
+ */
+export function isLikelyUnsafeToLaunch(server: McpServerConfig): boolean {
+  const base = (server.command ?? '').split(/[\\/]/).pop() ?? '';
+  if (INLINE_INTERPRETERS.has(base) && server.args.some((a) => /^(-c|-e|--eval|-r)$/.test(a))) {
+    return true;
+  }
+  return server.args.some((a) => /\|\s*(?:sudo\s+)?(?:sh|bash|zsh)\b/.test(a));
+}
+
 /** Config filenames used by Claude Code, Claude Desktop, Cursor, VS Code, etc. */
 const KNOWN_NAMES = ['mcp.json', '.mcp.json', 'claude_desktop_config.json', 'mcp_settings.json'];
 const KNOWN_RELATIVE = [
@@ -108,6 +125,7 @@ export function loadMcpConfig(configPath: string): McpConfig {
     root,
     configPath,
     servers,
+    tools: [],
     files: [{ path: basename(configPath), content }],
   };
 }

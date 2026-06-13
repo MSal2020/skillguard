@@ -31,6 +31,21 @@ export function matchInTarget(target: { files: SkillFile[] }, pattern: RegExp): 
   return matches;
 }
 
+// Zero-width and bidirectional control characters, by code point. Listed
+// explicitly (rather than as a regex literal) so the source stays ASCII-clean.
+export const INVISIBLE_CODE_POINTS = new Set<number>([
+  0x200b, 0x200c, 0x200d, 0x200e, 0x200f, // zero-width space/joiners + LRM/RLM
+  0x202a, 0x202b, 0x202c, 0x202d, 0x202e, // bidirectional embedding/override
+  0x2060, 0xfeff,                         // word joiner + BOM/zero-width no-break
+]);
+
+export function hasInvisibleChar(text: string): boolean {
+  for (const ch of text) {
+    if (INVISIBLE_CODE_POINTS.has(ch.codePointAt(0) ?? 0)) return true;
+  }
+  return false;
+}
+
 /** Find the 1-based line a substring first appears on, or undefined. */
 export function findLine(target: { files: SkillFile[] }, needle: string): number | undefined {
   if (!needle) return undefined;
