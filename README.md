@@ -14,6 +14,25 @@ It goes past grepping for "ignore previous instructions":
 
 > Status: early (v0.1). The engine works end-to-end with tests; coverage is growing. Contributions very welcome — see [Writing a rule](#writing-a-rule).
 
+### Measured precision
+
+A scanner that cries wolf is worse than none. skillguard is calibrated against a corpus of
+**175 real, reputable, presumably-benign** skills and MCP configs ([anthropics/skills](https://github.com/anthropics/skills),
+[wshobson/agents](https://github.com/wshobson/agents), [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers)) —
+where any failure is a candidate false positive:
+
+| | |
+|---|---|
+| Targets scanned | **175** |
+| Clean (pass) | 171 (97.7%) |
+| Warn | 4 (2.3% — documented `curl \| sh` install commands) |
+| **False-positive failures** | **0 (0.0%)** |
+
+Reproduce it yourself: `npm run bench` (see [bench/REPORT.md](bench/REPORT.md)). Recall — that it
+still catches real attacks — is locked by the test suite. Getting here required real calibration
+(separating code from documentation prose, matching secret *values* not secret *names*); the
+[security regression tests](test/security.test.ts) encode those lessons so they can't silently break.
+
 ---
 
 ## Quickstart
@@ -144,17 +163,17 @@ is caught even if the new text wouldn't trip any other rule.
 
 | ID | Severity | What it flags |
 |----|----------|---------------|
-| SEC001 | critical | Access to SSH private keys (`~/.ssh`, `id_rsa`, private-key headers) |
-| SEC002 | critical | Cloud / secret credentials (`.aws/credentials`, `GITHUB_TOKEN`, `.env`, secret env vars) |
-| SEC003 | high | Outbound network calls (`curl`, `wget`, `fetch`, `requests`, …) |
-| SEC004 | critical | Pipe-to-shell execution (`curl … \| sh`) |
-| SEC005 | high | Obfuscated / encoded execution (`eval`, `base64 -d \| bash`, `atob`) |
-| SEC006 | high | Destructive / persistence commands (`rm -rf`, editing shell rc files, `crontab`) |
+| SEC001 | critical¹ | Access to SSH private keys (`~/.ssh`, `id_rsa`, private-key headers) |
+| SEC002 | critical | Hardcoded credential **literal** (real token formats; placeholders & `process.env.X` reads ignored) |
+| SEC003 | info | Outbound network call — context only (scripts) |
+| SEC004 | critical¹ | Pipe-to-shell execution (`curl … \| sh`) |
+| SEC005 | high¹ | Obfuscated / encoded execution (`eval`, `atob`, `base64 -d \| bash`) |
+| SEC006 | high¹ | Destructive / persistence commands (`rm -rf ~`, editing shell rc files, `crontab`) |
 | SEC007 | critical | Hidden prompt-injection ("ignore previous instructions", "don't tell the user") |
 | SEC008 | high | Zero-width / invisible Unicode used to hide instructions |
+| SEC009 | medium | Access to credential files (`.aws/credentials`, `.netrc`, `.npmrc`) |
 | QUA001 | med/high | Missing or weak skill description *(skills)* |
 | QUA002 | low | Description without trigger cues ("Use when…") *(skills)* |
-| QUA003 | low | No examples / usage section *(skills)* |
 | MCP001 | critical | Hardcoded secret in an MCP server's `env` / `headers` *(MCP)* |
 | MCP002 | medium | Unpinned package launch (`npx -y …@latest`) — supply-chain risk *(MCP)* |
 | MCP003 | high | Inline `bash -c` / `python -c` script in config *(MCP)* |
@@ -166,6 +185,8 @@ is caught even if the new text wouldn't trip any other rule.
 | PAT001–003 | varies | Data-driven rules from [`rulesets/patterns.yaml`](rulesets/patterns.yaml) |
 
 The `SEC*` and `PAT*` rules apply to **all** target kinds; `QUA*` are skill-only, `MCP*` are config-only, and `TP*`/`PIN*` apply to tool definitions (from a manifest or introspection).
+
+¹ Execution rules run on **code** (scripts, config, fenced code blocks), never on documentation prose, and drop one severity level when the match is in a doc — so an official `curl … | sh` install command shown in a README is a `warn`, not a `fail`. This is what keeps the false-positive rate at zero on real skills.
 
 ## Use in CI
 

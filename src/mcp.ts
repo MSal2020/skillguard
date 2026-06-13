@@ -59,7 +59,7 @@ function configsInDir(dir: string): string[] {
  * - a config file → itself;
  * - a directory → known configs in it, plus known configs one level down.
  */
-export function discoverMcpConfigs(target: string): string[] {
+export function discoverMcpConfigs(target: string, maxDepth = 8): string[] {
   let st;
   try {
     st = statSync(target);
@@ -68,16 +68,27 @@ export function discoverMcpConfigs(target: string): string[] {
   }
   if (st.isFile()) return looksLikeMcpConfig(target) ? [target] : [];
 
-  const found = [...configsInDir(target)];
-  for (const entry of readdirSync(target)) {
-    if (SKIP_DIRS.has(entry)) continue;
-    const sub = join(target, entry);
+  const found: string[] = [];
+  function walk(dir: string, depth: number): void {
+    found.push(...configsInDir(dir));
+    if (depth >= maxDepth) return;
+    let entries: string[];
     try {
-      if (statSync(sub).isDirectory()) found.push(...configsInDir(sub));
+      entries = readdirSync(dir);
     } catch {
-      // unreadable — skip
+      return;
+    }
+    for (const entry of entries) {
+      if (SKIP_DIRS.has(entry)) continue;
+      const sub = join(dir, entry);
+      try {
+        if (statSync(sub).isDirectory()) walk(sub, depth + 1);
+      } catch {
+        // unreadable — skip
+      }
     }
   }
+  walk(target, 0);
   return [...new Set(found)].sort();
 }
 

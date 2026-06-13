@@ -22,6 +22,7 @@
     "dev": "tsx src/cli.ts",
     "scan": "tsx src/cli.ts",
     "test": "vitest run",
+    "bench": "npm run build && node bench/run.mjs",
     "prepublishOnly": "npm run build"
   },
   "keywords": [

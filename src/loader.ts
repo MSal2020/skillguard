@@ -26,25 +26,28 @@ export function findManifest(dir: string): string | null {
  * - if the path itself contains a manifest, it's a single skill;
  * - otherwise, treat it as a directory of skills (one per immediate subdir).
  */
-export function discoverSkills(target: string): string[] {
-  if (findManifest(target)) return [target];
-  let entries: string[];
-  try {
-    if (!statSync(target).isDirectory()) return [];
-    entries = readdirSync(target);
-  } catch {
-    return [];
-  }
-  const dirs: string[] = [];
-  for (const entry of entries) {
-    const full = join(target, entry);
+export function discoverSkills(target: string, maxDepth = 8): string[] {
+  const found: string[] = [];
+  function walk(dir: string, depth: number): void {
+    if (findManifest(dir)) {
+      found.push(dir); // a skill dir — don't descend into it looking for nested skills
+      return;
+    }
+    if (depth >= maxDepth) return;
+    let entries: string[];
     try {
-      if (statSync(full).isDirectory() && findManifest(full)) dirs.push(full);
+      if (!statSync(dir).isDirectory()) return;
+      entries = readdirSync(dir);
     } catch {
-      // unreadable entry — skip
+      return;
+    }
+    for (const entry of entries) {
+      if (SKIP_DIRS.has(entry)) continue;
+      walk(join(dir, entry), depth + 1);
     }
   }
-  return dirs.sort();
+  walk(target, 0);
+  return found.sort();
 }
 
 function walk(dir: string, root: string, out: SkillFile[]): void {

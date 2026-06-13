@@ -93,8 +93,8 @@ export function looksLikeToolManifest(path: string): boolean {
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.venv', '__pycache__']);
 
-/** Resolve tool manifests from a path: the file itself, or `tools.json` in a dir / its subdirs. */
-export function discoverToolManifests(target: string): string[] {
+/** Resolve tool manifests from a path: the file itself, or `tools.json` files anywhere beneath a dir. */
+export function discoverToolManifests(target: string, maxDepth = 8): string[] {
   let st;
   try {
     st = statSync(target);
@@ -104,16 +104,26 @@ export function discoverToolManifests(target: string): string[] {
   if (st.isFile()) return looksLikeToolManifest(target) ? [target] : [];
 
   const found: string[] = [];
-  const direct = join(target, 'tools.json');
-  if (existsSync(direct) && looksLikeToolManifest(direct)) found.push(direct);
-  for (const entry of readdirSync(target)) {
-    if (SKIP_DIRS.has(entry)) continue;
-    const sub = join(target, entry, 'tools.json');
+  function walk(dir: string, depth: number): void {
+    const direct = join(dir, 'tools.json');
+    if (existsSync(direct) && looksLikeToolManifest(direct)) found.push(direct);
+    if (depth >= maxDepth) return;
+    let entries: string[];
     try {
-      if (existsSync(sub) && looksLikeToolManifest(sub)) found.push(sub);
+      entries = readdirSync(dir);
     } catch {
-      /* skip */
+      return;
+    }
+    for (const entry of entries) {
+      if (SKIP_DIRS.has(entry)) continue;
+      const sub = join(dir, entry);
+      try {
+        if (statSync(sub).isDirectory()) walk(sub, depth + 1);
+      } catch {
+        /* skip */
+      }
     }
   }
+  walk(target, 0);
   return [...new Set(found)].sort();
 }

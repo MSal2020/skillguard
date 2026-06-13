@@ -1,0 +1,8 @@
+{
+  "description": "Reputable, presumably-benign public collections. Because these are trusted, any FAIL skillguard produces is a candidate false positive — so this corpus measures precision.",
+  "sources": [
+    { "name": "anthropic-skills", "url": "https://github.com/anthropics/skills" },
+    { "name": "wshobson-agents", "url": "https://github.com/wshobson/agents" },
+    { "name": "mcp-servers", "url": "https://github.com/modelcontextprotocol/servers" }
+  ]
+}

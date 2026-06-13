@@ -75,24 +75,4 @@ export const qualityRules: Rule[] = [
       return [];
     }),
   },
-  {
-    id: 'QUA003',
-    title: 'No examples or usage section',
-    category: 'quality',
-    severity: 'low',
-    ...skillRule('QUA003', 'No examples or usage section', (skill) => {
-      if (!/##?\s*(?:example|usage|how to use)/i.test(skill.body)) {
-        return [{
-          ruleId: 'QUA003',
-          title: 'No examples or usage section',
-          category: 'quality',
-          severity: 'low',
-          message: 'No Examples/Usage section found. Examples sharpen both human understanding and model behavior.',
-          remediation: 'Add a short Examples section showing typical invocations.',
-          file: manifestFile(skill),
-        }];
-      }
-      return [];
-    }),
-  },
 ];

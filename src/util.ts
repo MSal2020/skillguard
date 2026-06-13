@@ -1,3 +1,4 @@
+import { extname } from 'node:path';
 import type { SkillFile } from './types.js';
 
 export interface Match {
@@ -6,18 +7,66 @@ export interface Match {
   snippet: string;
 }
 
+export interface MatchOptions {
+  /**
+   * Only test "code" lines — every line of a script or data file, and the
+   * fenced code blocks of a markdown doc, but NOT documentation prose. Keeps
+   * execution rules (network, pipe-to-shell, obfuscation) from firing on a
+   * sentence that merely mentions `curl`.
+   */
+  codeOnly?: boolean;
+}
+
 const MAX_SNIPPET = 160;
+
+const SCRIPT_EXT = new Set([
+  '.sh', '.bash', '.zsh', '.dash', '.js', '.mjs', '.cjs', '.ts', '.tsx',
+  '.py', '.rb', '.ps1', '.php', '.pl', '.go', '.rs', '.java',
+]);
+const DATA_EXT = new Set(['.json', '.yaml', '.yml', '.toml', '.env', '.ndjson', '.ini', '.cfg']);
+
+const DOC_EXT = new Set(['.md', '.markdown', '.mdx', '.rst', '.txt']);
+
+/** True for documentation files (where a risky command is usually shown, not run). */
+export function isDocFile(path: string): boolean {
+  return DOC_EXT.has(extname(path).toLowerCase());
+}
+
+/** Per-line flags: is this line "code" (vs documentation prose)? */
+export function codeLineFlags(path: string, lines: string[]): boolean[] {
+  const ext = extname(path).toLowerCase();
+  if (SCRIPT_EXT.has(ext) || DATA_EXT.has(ext) || ext === '') {
+    return lines.map(() => true);
+  }
+  if (ext === '.md' || ext === '.markdown' || ext === '.mdx' || ext === '.rst') {
+    let inFence = false;
+    return lines.map((l) => {
+      if (/^\s{0,3}(```|~~~)/.test(l)) {
+        inFence = !inFence;
+        return false; // the fence delimiter itself is not code
+      }
+      return inFence;
+    });
+  }
+  return lines.map(() => false); // .txt and unknown → treat as prose
+}
 
 /**
  * Scan every file in a target line-by-line for a pattern and return the
  * locations that match. The pattern should be non-global; we reset lastIndex
  * defensively so a stray `g` flag can't cause skipped lines.
  */
-export function matchInTarget(target: { files: SkillFile[] }, pattern: RegExp): Match[] {
+export function matchInTarget(
+  target: { files: SkillFile[] },
+  pattern: RegExp,
+  opts: MatchOptions = {},
+): Match[] {
   const matches: Match[] = [];
   for (const file of target.files) {
     const lines = file.content.split(/\r?\n/);
+    const flags = opts.codeOnly ? codeLineFlags(file.path, lines) : null;
     for (let i = 0; i < lines.length; i++) {
+      if (flags && !flags[i]) continue;
       pattern.lastIndex = 0;
       if (pattern.test(lines[i])) {
         matches.push({

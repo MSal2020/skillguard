@@ -14,6 +14,8 @@ interface PatternSpec {
   flags?: string;
   message: string;
   remediation?: string;
+  /** Set true to also scan documentation prose. Default: code only. */
+  prose?: boolean;
 }
 
 /**
@@ -32,13 +34,14 @@ function specToRule(spec: PatternSpec): Rule {
   const severity = spec.severity ?? 'medium';
   const category = spec.category ?? 'security';
   const regex = new RegExp(spec.pattern, spec.flags ?? 'i');
+  const codeOnly = !spec.prose;
   return {
     id: spec.id,
     title: spec.title,
     category,
     severity,
     check(target: ScanTarget): Finding[] {
-      return matchInTarget(target, regex).map((m) => ({
+      return matchInTarget(target, regex, { codeOnly }).map((m) => ({
         ruleId: spec.id,
         title: spec.title,
         category,

@@ -3,3 +3,7 @@ dist/
 coverage/
 *.log
 .DS_Store
+
+# benchmark: cloned corpora and machine-readable output (REPORT.md is committed)
+bench/.corpus/
+bench/report.json
