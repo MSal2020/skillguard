@@ -135,8 +135,9 @@ function discover(target: string, kind: KindFilter): Array<{ kind: 'skill' | 'mc
 
 async function introspectInto(config: McpConfig, opts: Options): Promise<void> {
   for (const server of config.servers) {
-    if (!server.command) continue; // remote/HTTP not yet supported
-    if (isLikelyUnsafeToLaunch(server) && !opts.introspectUnsafe) {
+    if (!server.command && !server.url) continue;
+    // The inline-code safety gate only applies to stdio servers we'd launch.
+    if (server.command && isLikelyUnsafeToLaunch(server) && !opts.introspectUnsafe) {
       process.stderr.write(
         `! skillguard: refusing to introspect "${server.name}" — it launches inline code. ` +
           `Re-run with --introspect-unsafe to override (this executes it).\n`,
@@ -165,7 +166,7 @@ async function main(): Promise<void> {
   const target = resolve(opts.path);
 
   if (opts.introspect && !opts.json) {
-    process.stderr.write('⚠ introspection launches MCP servers — only run it on servers you trust.\n');
+    process.stderr.write('⚠ introspection launches (stdio) or contacts (http) MCP servers — only run it on servers you trust.\n');
   }
 
   const found = discover(target, opts.kind);

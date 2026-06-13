@@ -2,7 +2,7 @@ export * from './types.js';
 export { loadSkill, discoverSkills, findManifest } from './loader.js';
 export { loadMcpConfig, discoverMcpConfigs, looksLikeMcpConfig, isLikelyUnsafeToLaunch } from './mcp.js';
 export { loadToolManifest, discoverToolManifests, looksLikeToolManifest, normalizeTools, getTools } from './tools.js';
-export { introspectServer } from './introspect.js';
+export { introspectServer, parseSseEvents } from './introspect.js';
 export { scanTarget, scanSkill, runRules, appendFindings } from './engine.js';
 export { scoreFindings, verdictFor } from './score.js';
 export {

@@ -9,7 +9,7 @@ Agent "skills" are now installed with a single command (`gh skill install …`, 
 It goes past grepping for "ignore previous instructions":
 
 - **Tool-poisoning analysis** — calibrated, multi-signal detection of malicious tool definitions. It only escalates to *critical* when a real attack **chain** is present (a way to hide an instruction **and** a harmful objective — data exfiltration, a hidden parameter, or steering other tools), so it catches real attacks without drowning you in false positives.
-- **Live introspection** — it can launch a stdio MCP server, perform the `initialize` handshake, call `tools/list`, and analyze the **real** tool schemas the server advertises — not just the config that launches it.
+- **Live introspection** — it can launch a stdio MCP server (or connect to a remote one over Streamable HTTP), perform the `initialize` handshake, call `tools/list`, and analyze the **real** tool schemas the server advertises — not just the config that launches it.
 - **Tool pinning (rug-pull defense)** — a lockfile that fingerprints approved tool definitions, so a server that quietly changes a tool *after* you approved it gets flagged.
 
 > Status: early (v0.1). The engine works end-to-end with tests; coverage is growing. Contributions very welcome — see [Writing a rule](#writing-a-rule).
@@ -47,7 +47,7 @@ npx skillguard mcp ./path/to/mcp-config
 # scan MCP tool definitions for tool poisoning
 npx skillguard tools ./path/to/tools.json
 
-# launch a stdio MCP server and analyze its live tools (executes the server)
+# introspect a live MCP server (stdio or remote http) and analyze its real tools
 npx skillguard mcp ./config --introspect
 
 # pin approved tool definitions, then detect later rug-pulls
@@ -143,8 +143,8 @@ skillguard › tools.json  [tools]
 imperative phrase ("before using this tool, …") is flagged `TP003 (low)` — not failed.
 That calibration is the difference between a useful scanner and an annoying one.
 
-With `--introspect`, skillguard launches the server and analyzes the tool schemas it
-*actually* returns — catching servers that ship a clean config but advertise poisoned
+With `--introspect`, skillguard launches the stdio server (or connects to a remote one over
+Streamable HTTP) and analyzes the tool schemas it *actually* returns — catching servers that ship a clean config but advertise poisoned
 tools at runtime. Because introspection executes the server, it is opt-in and refuses
 servers that launch inline code unless you pass `--introspect-unsafe`.
 
@@ -228,7 +228,7 @@ load target (skill / MCP config / tool manifest; optionally introspect a live se
    → verdict: fail (any critical / score ≥ 50) · warn (≥ 15) · pass
 ```
 
-Single small dependency (`yaml`); everything else is the Node standard library — fitting for a tool whose whole job is to be trustworthy. The MCP introspection client speaks JSON-RPC over stdio itself, with no SDK.
+Single small dependency (`yaml`); everything else is the Node standard library — fitting for a tool whose whole job is to be trustworthy. The MCP introspection client speaks JSON-RPC over stdio and Streamable HTTP itself (parsing both JSON and SSE responses), with no SDK.
 
 ## Roadmap
 
@@ -236,7 +236,8 @@ Single small dependency (`yaml`); everything else is the Node standard library �
 - [x] **Tool-poisoning detection** — multi-signal analysis of tool definitions with attack-chain escalation
 - [x] **Live introspection** — launch a stdio server and analyze its real `tools/list` output
 - [x] **Rug-pull detection** — pin tool fingerprints and flag post-approval changes
-- [ ] **HTTP/SSE introspection** — introspect remote MCP servers, not just stdio
+- [x] **HTTP introspection** — introspect remote MCP servers over Streamable HTTP (JSON + SSE), not just stdio
+- [ ] **Legacy SSE transport** — the older two-endpoint HTTP+SSE transport
 - [ ] **Optional LLM pass** — a second tier that reasons about intent beyond regex
 - [ ] **Pre-install hook** — wrap `gh skill` / `skillpm` to scan before anything lands
 - [ ] **GitHub Action** — `skillguard-action@v1` for one-line PR gating
