@@ -28,8 +28,15 @@ export function findManifest(dir: string): string | null {
  */
 export function discoverSkills(target: string): string[] {
   if (findManifest(target)) return [target];
+  let entries: string[];
+  try {
+    if (!statSync(target).isDirectory()) return [];
+    entries = readdirSync(target);
+  } catch {
+    return [];
+  }
   const dirs: string[] = [];
-  for (const entry of readdirSync(target)) {
+  for (const entry of entries) {
     const full = join(target, entry);
     try {
       if (statSync(full).isDirectory() && findManifest(full)) dirs.push(full);
@@ -88,5 +95,5 @@ export function loadSkill(dir: string): LoadedSkill {
   const name =
     (typeof frontmatter.name === 'string' && frontmatter.name.trim()) || basename(dir);
   const description = typeof frontmatter.description === 'string' ? frontmatter.description : '';
-  return { name, root: dir, manifestPath, frontmatter, description, body, files };
+  return { kind: 'skill', name, root: dir, manifestPath, frontmatter, description, body, files };
 }

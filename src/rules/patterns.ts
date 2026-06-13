@@ -2,8 +2,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
-import type { Rule, Finding, LoadedSkill, Severity, Category } from '../types.js';
-import { matchInSkill } from '../util.js';
+import type { Rule, Finding, ScanTarget, Severity, Category } from '../types.js';
+import { matchInTarget } from '../util.js';
 
 interface PatternSpec {
   id: string;
@@ -37,8 +37,8 @@ function specToRule(spec: PatternSpec): Rule {
     title: spec.title,
     category,
     severity,
-    check(skill: LoadedSkill): Finding[] {
-      return matchInSkill(skill, regex).map((m) => ({
+    check(target: ScanTarget): Finding[] {
+      return matchInTarget(target, regex).map((m) => ({
         ruleId: spec.id,
         title: spec.title,
         category,

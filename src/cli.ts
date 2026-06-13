@@ -1,15 +1,19 @@
 #!/usr/bin/env node
 import { resolve } from 'node:path';
 import { loadSkill, discoverSkills } from './loader.js';
-import { scanSkill } from './engine.js';
+import { loadMcpConfig, discoverMcpConfigs } from './mcp.js';
+import { scanTarget } from './engine.js';
 import { defaultRules } from './rules/index.js';
 import { formatResult, SEVERITY_ORDER } from './report.js';
 import type { Severity, ScanResult } from './types.js';
+
+type KindFilter = 'auto' | 'skill' | 'mcp';
 
 interface Options {
   path: string;
   json: boolean;
   ci: boolean;
+  kind: KindFilter;
   minSeverity: Severity;
   color: boolean;
 }
@@ -17,7 +21,9 @@ interface Options {
 const HELP = `skillguard — audit agent skills & MCP servers for safety and quality
 
 Usage:
-  skillguard <path>            Scan a skill directory (or a directory of skills)
+  skillguard <path>            Scan skills and/or MCP configs found at <path>
+  skillguard mcp <path>        Scan only MCP server configs
+  skillguard skill <path>      Scan only skills
   skillguard ci <path>         Scan and exit non-zero if anything fails (for CI)
 
 Options:
@@ -28,8 +34,8 @@ Options:
   -h, --help                   Show this help
 
 Examples:
-  skillguard ./my-skill
   skillguard examples/malicious-skill
+  skillguard mcp examples/malicious-mcp
   skillguard ci ./skills --min-severity high
 `;
 
@@ -40,8 +46,14 @@ function isSeverity(value: string): value is Severity {
 function parseArgs(argv: string[]): Options {
   const args = [...argv];
   let ci = false;
+  let kind: KindFilter = 'auto';
+
   if (args[0] === 'ci') {
     ci = true;
+    args.shift();
+  }
+  if (args[0] === 'mcp' || args[0] === 'skill') {
+    kind = args[0];
     args.shift();
   }
 
@@ -49,6 +61,7 @@ function parseArgs(argv: string[]): Options {
     path: '.',
     json: false,
     ci,
+    kind,
     minSeverity: 'info',
     color: Boolean(process.stdout.isTTY),
   };
@@ -86,27 +99,35 @@ function filterBySeverity(result: ScanResult, min: Severity): ScanResult {
   };
 }
 
+function discover(target: string, kind: KindFilter): Array<{ kind: 'skill' | 'mcp'; path: string }> {
+  const out: Array<{ kind: 'skill' | 'mcp'; path: string }> = [];
+  if (kind !== 'mcp') {
+    for (const dir of discoverSkills(target)) out.push({ kind: 'skill', path: dir });
+  }
+  if (kind !== 'skill') {
+    for (const cfg of discoverMcpConfigs(target)) out.push({ kind: 'mcp', path: cfg });
+  }
+  return out;
+}
+
 function main(): void {
   const opts = parseArgs(process.argv.slice(2));
   const target = resolve(opts.path);
 
-  let skillDirs: string[];
-  try {
-    skillDirs = discoverSkills(target);
-  } catch (err) {
-    process.stderr.write(`Error: ${(err as Error).message}\n`);
-    process.exit(2);
-  }
-
-  if (skillDirs.length === 0) {
-    process.stderr.write(`No skills found at ${target} (looked for SKILL.md).\n`);
+  const found = discover(target, opts.kind);
+  if (found.length === 0) {
+    process.stderr.write(
+      `No ${opts.kind === 'auto' ? 'skills or MCP configs' : opts.kind + 's'} found at ${target}.\n` +
+        `(looked for SKILL.md and mcp.json / .mcp.json / claude_desktop_config.json)\n`,
+    );
     process.exit(2);
   }
 
   const rules = defaultRules();
-  const results = skillDirs.map((dir) =>
-    filterBySeverity(scanSkill(loadSkill(dir), rules), opts.minSeverity),
-  );
+  const results = found.map(({ kind, path }) => {
+    const loaded = kind === 'skill' ? loadSkill(path) : loadMcpConfig(path);
+    return filterBySeverity(scanTarget(loaded, rules), opts.minSeverity);
+  });
 
   if (opts.json) {
     process.stdout.write(JSON.stringify(results, null, 2) + '\n');

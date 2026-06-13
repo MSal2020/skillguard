@@ -1,4 +1,4 @@
-import type { LoadedSkill } from './types.js';
+import type { SkillFile } from './types.js';
 
 export interface Match {
   file: string;
@@ -9,13 +9,13 @@ export interface Match {
 const MAX_SNIPPET = 160;
 
 /**
- * Scan every file in a skill line-by-line for a pattern and return the
+ * Scan every file in a target line-by-line for a pattern and return the
  * locations that match. The pattern should be non-global; we reset lastIndex
  * defensively so a stray `g` flag can't cause skipped lines.
  */
-export function matchInSkill(skill: LoadedSkill, pattern: RegExp): Match[] {
+export function matchInTarget(target: { files: SkillFile[] }, pattern: RegExp): Match[] {
   const matches: Match[] = [];
-  for (const file of skill.files) {
+  for (const file of target.files) {
     const lines = file.content.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
       pattern.lastIndex = 0;
@@ -29,4 +29,16 @@ export function matchInSkill(skill: LoadedSkill, pattern: RegExp): Match[] {
     }
   }
   return matches;
+}
+
+/** Find the 1-based line a substring first appears on, or undefined. */
+export function findLine(target: { files: SkillFile[] }, needle: string): number | undefined {
+  if (!needle) return undefined;
+  for (const file of target.files) {
+    const lines = file.content.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes(needle)) return i + 1;
+    }
+  }
+  return undefined;
 }

@@ -1,5 +1,5 @@
-import type { LoadedSkill, Finding, Rule, Severity } from '../types.js';
-import { matchInSkill } from '../util.js';
+import type { ScanTarget, Finding, Rule, Severity } from '../types.js';
+import { matchInTarget } from '../util.js';
 
 function patternRule(opts: {
   id: string;
@@ -14,8 +14,8 @@ function patternRule(opts: {
     title: opts.title,
     category: 'security',
     severity: opts.severity,
-    check(skill: LoadedSkill): Finding[] {
-      return matchInSkill(skill, opts.pattern).map((m) => ({
+    check(target: ScanTarget): Finding[] {
+      return matchInTarget(target, opts.pattern).map((m) => ({
         ruleId: opts.id,
         title: opts.title,
         category: 'security',
@@ -107,9 +107,9 @@ export const securityRules: Rule[] = [
     title: 'Zero-width / invisible characters',
     category: 'security',
     severity: 'high',
-    check(skill: LoadedSkill): Finding[] {
+    check(target: ScanTarget): Finding[] {
       const findings: Finding[] = [];
-      for (const file of skill.files) {
+      for (const file of target.files) {
         file.content.split(/\r?\n/).forEach((line, i) => {
           if (hasInvisibleChar(line)) {
             findings.push({

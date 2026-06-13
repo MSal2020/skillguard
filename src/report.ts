@@ -49,7 +49,8 @@ export function formatResult(result: ScanResult, useColor = true): string {
 
   lines.push('');
   lines.push(
-    paint(useColor, C.bold, `skillguard › ${result.skill}`) +
+    paint(useColor, C.bold, `skillguard › ${result.name}`) +
+      paint(useColor, C.cyan, `  [${result.kind}]`) +
       paint(useColor, C.gray, `  (${result.root})`),
   );
 

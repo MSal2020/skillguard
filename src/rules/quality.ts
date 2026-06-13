@@ -1,8 +1,22 @@
 import { basename } from 'node:path';
-import type { LoadedSkill, Finding, Rule } from '../types.js';
+import type { ScanTarget, LoadedSkill, Finding, Rule } from '../types.js';
 
 function manifestFile(skill: LoadedSkill): string {
   return basename(skill.manifestPath);
+}
+
+/** Quality rules only apply to skills; MCP configs have no description/body. */
+function skillRule(
+  id: string,
+  title: string,
+  fn: (skill: LoadedSkill) => Finding[],
+): Pick<Rule, 'check'> {
+  return {
+    check(target: ScanTarget): Finding[] {
+      if (target.kind !== 'skill') return [];
+      return fn(target);
+    },
+  };
 }
 
 export const qualityRules: Rule[] = [
@@ -11,7 +25,7 @@ export const qualityRules: Rule[] = [
     title: 'Missing or weak description',
     category: 'quality',
     severity: 'medium',
-    check(skill: LoadedSkill): Finding[] {
+    ...skillRule('QUA001', 'Missing or weak description', (skill) => {
       const d = skill.description.trim();
       if (!d) {
         return [{
@@ -37,14 +51,14 @@ export const qualityRules: Rule[] = [
         }];
       }
       return [];
-    },
+    }),
   },
   {
     id: 'QUA002',
     title: 'Description lacks trigger cues',
     category: 'quality',
     severity: 'low',
-    check(skill: LoadedSkill): Finding[] {
+    ...skillRule('QUA002', 'Description lacks trigger cues', (skill) => {
       const d = skill.description.toLowerCase();
       if (!d) return [];
       if (!/(use (?:this )?when|trigger|for (?:when|tasks)|whenever)/.test(d)) {
@@ -59,14 +73,14 @@ export const qualityRules: Rule[] = [
         }];
       }
       return [];
-    },
+    }),
   },
   {
     id: 'QUA003',
     title: 'No examples or usage section',
     category: 'quality',
     severity: 'low',
-    check(skill: LoadedSkill): Finding[] {
+    ...skillRule('QUA003', 'No examples or usage section', (skill) => {
       if (!/##?\s*(?:example|usage|how to use)/i.test(skill.body)) {
         return [{
           ruleId: 'QUA003',
@@ -79,6 +93,6 @@ export const qualityRules: Rule[] = [
         }];
       }
       return [];
-    },
+    }),
   },
 ];

@@ -1,11 +1,11 @@
-import type { LoadedSkill, Finding, Rule, ScanResult } from './types.js';
+import type { ScanTarget, Finding, Rule, ScanResult } from './types.js';
 import { scoreFindings, verdictFor } from './score.js';
 
-export function runRules(skill: LoadedSkill, rules: Rule[]): Finding[] {
+export function runRules(target: ScanTarget, rules: Rule[]): Finding[] {
   const findings: Finding[] = [];
   for (const rule of rules) {
     try {
-      findings.push(...rule.check(skill));
+      findings.push(...rule.check(target));
     } catch (err) {
       // A buggy rule should never crash the whole scan.
       findings.push({
@@ -20,14 +20,18 @@ export function runRules(skill: LoadedSkill, rules: Rule[]): Finding[] {
   return findings;
 }
 
-export function scanSkill(skill: LoadedSkill, rules: Rule[]): ScanResult {
-  const findings = runRules(skill, rules);
+export function scanTarget(target: ScanTarget, rules: Rule[]): ScanResult {
+  const findings = runRules(target, rules);
   const score = scoreFindings(findings);
   return {
-    skill: skill.name,
-    root: skill.root,
+    kind: target.kind,
+    name: target.name,
+    root: target.root,
     findings,
     score,
     verdict: verdictFor(findings, score),
   };
 }
+
+/** Back-compat alias — skills are just one kind of scan target. */
+export const scanSkill = scanTarget;
