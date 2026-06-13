@@ -28,13 +28,65 @@ const KNOWN_RELATIVE = [
 ];
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.venv', '__pycache__']);
 
-function parseJson(path: string): Record<string, unknown> | null {
+/** Parse JSON, tolerating JSONC (comments + trailing commas) — VS Code configs use it. */
+function looseParse(text: string): unknown {
   try {
-    const value = JSON.parse(readFileSync(path, 'utf8')) as unknown;
-    return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+    return JSON.parse(text);
+  } catch {
+    /* fall through to comment-stripping */
+  }
+  let out = '';
+  let inStr = false;
+  let strCh = '';
+  let inLine = false;
+  let inBlock = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    const n = text[i + 1];
+    if (inLine) {
+      if (c === '\n') {
+        inLine = false;
+        out += c;
+      }
+      continue;
+    }
+    if (inBlock) {
+      if (c === '*' && n === '/') {
+        inBlock = false;
+        i++;
+      }
+      continue;
+    }
+    if (inStr) {
+      out += c;
+      if (c === '\\') out += text[++i] ?? '';
+      else if (c === strCh) inStr = false;
+      continue;
+    }
+    if (c === '"' || c === "'") {
+      inStr = true;
+      strCh = c;
+      out += c;
+    } else if (c === '/' && n === '/') {
+      inLine = true;
+      i++;
+    } else if (c === '/' && n === '*') {
+      inBlock = true;
+      i++;
+    } else {
+      out += c;
+    }
+  }
+  try {
+    return JSON.parse(out.replace(/,(\s*[}\]])/g, '$1'));
   } catch {
     return null;
   }
+}
+
+function parseJson(path: string): Record<string, unknown> | null {
+  const value = looseParse(readFileSync(path, 'utf8'));
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 }
 
 /** True if a file is (or very likely is) an MCP config. */
@@ -123,10 +175,21 @@ export function loadMcpConfig(configPath: string): McpConfig {
   }
 
   // Claude/Cursor use `mcpServers`; VS Code uses `servers`.
-  const serverMap = {
+  const serverMap: Record<string, unknown> = {
     ...(json.mcpServers && typeof json.mcpServers === 'object' ? (json.mcpServers as Record<string, unknown>) : {}),
     ...(json.servers && typeof json.servers === 'object' ? (json.servers as Record<string, unknown>) : {}),
   };
+  // Claude Code's ~/.claude.json nests per-project servers under `projects`.
+  if (json.projects && typeof json.projects === 'object' && !Array.isArray(json.projects)) {
+    for (const [projPath, projVal] of Object.entries(json.projects as Record<string, unknown>)) {
+      const pv = projVal as Record<string, unknown>;
+      if (pv && typeof pv.mcpServers === 'object' && pv.mcpServers) {
+        for (const [name, def] of Object.entries(pv.mcpServers as Record<string, unknown>)) {
+          serverMap[`${basename(projPath)}:${name}`] = def;
+        }
+      }
+    }
+  }
   const servers = Object.entries(serverMap).map(([name, def]) => normalizeServer(name, def));
 
   const root = dirname(configPath);

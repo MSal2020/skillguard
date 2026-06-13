@@ -38,6 +38,10 @@ measured, not assumed.
 ## Quickstart
 
 ```bash
+# the one you'll actually run: audit every MCP server & skill installed on
+# THIS machine (Claude Desktop, Claude Code, Cursor, Windsurf, VS Code)
+npx skillguard audit
+
 # scan a skill you're about to install
 npx skillguard ./path/to/skill
 
@@ -199,6 +203,48 @@ Gate a pull request that adds or changes skills:
 
 `skillguard ci <path>` scans every skill under a directory and exits non-zero if any **fail**, so a malicious or low-quality skill can't merge unnoticed. JSON output (`--json`) is available for custom tooling.
 
+## Audit your machine
+
+`skillguard audit` finds and scans the MCP servers and skills **already installed** on your
+computer — no paths required. It checks the standard config locations for Claude Desktop,
+Claude Code (`~/.claude.json`, including per-project servers), Cursor, Windsurf, and VS Code
+(tolerating JSONC), plus installed skills, and prints one consolidated report:
+
+```
+skillguard audit — scanning 7 installed target(s)…
+
+── Claude Desktop ──
+skillguard › claude_desktop_config.json  [mcp]
+  CRIT Hardcoded credential SEC002 9f2a1c4e
+  ...
+── Cursor ──
+  ✓ no issues found
+
+Scanned 7 target(s): 1 fail, 0 warn.
+```
+
+A malformed or unreadable config is skipped with a warning, never aborting the run.
+
+## Suppressing findings
+
+A scanner you can't quiet is a scanner you'll uninstall. Drop a `.skillguardignore`
+(JSON) next to where you run skillguard to accept specific findings — every finding prints a
+short **fingerprint** (the `9f2a1c4e` above) you can target directly:
+
+```json
+{
+  "ignore": [
+    { "rule": "SEC004", "path": "**/install.sh", "reason": "documented vendor install command" },
+    { "fingerprint": "9f2a1c4e", "reason": "false positive in our config" },
+    { "rule": "MCP002" }
+  ]
+}
+```
+
+Each entry matches by `rule`, a `path` glob, an exact `fingerprint`, or any combination (all
+specified fields must match). Suppressed findings are removed **and** the verdict is recomputed,
+so an accepted finding won't keep a target in `fail`.
+
 ## Writing a rule
 
 The fastest way to contribute: add a regex rule to [`rulesets/patterns.yaml`](rulesets/patterns.yaml) — no code, no build.
@@ -239,6 +285,8 @@ Single small dependency (`yaml`); everything else is the Node standard library �
 - [x] **HTTP introspection** — introspect remote MCP servers over Streamable HTTP (JSON + SSE), not just stdio
 - [ ] **Legacy SSE transport** — the older two-endpoint HTTP+SSE transport
 - [ ] **Optional LLM pass** — a second tier that reasons about intent beyond regex
+- [x] **Machine audit** — `skillguard audit` scans every installed client's MCP configs & skills
+- [x] **Allow/ignore file** — `.skillguardignore` with rule / path-glob / fingerprint suppression
 - [ ] **Pre-install hook** — wrap `gh skill` / `skillpm` to scan before anything lands
 - [ ] **GitHub Action** — `skillguard-action@v1` for one-line PR gating
 - [ ] **SARIF output** — surface findings in GitHub code scanning

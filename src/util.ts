@@ -1,5 +1,18 @@
 import { extname } from 'node:path';
-import type { SkillFile } from './types.js';
+import { createHash } from 'node:crypto';
+import type { SkillFile, Finding } from './types.js';
+
+/**
+ * A short, stable id for a finding — by rule + file + matched content (not line,
+ * which shifts on edits). Shown in output so a user can suppress one finding via
+ * a `.skillguardignore` entry.
+ */
+export function fingerprintFinding(f: Finding): string {
+  return createHash('sha256')
+    .update(`${f.ruleId}|${f.file ?? ''}|${f.snippet ?? f.title}`)
+    .digest('hex')
+    .slice(0, 8);
+}
 
 export interface Match {
   file: string;

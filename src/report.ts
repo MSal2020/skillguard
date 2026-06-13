@@ -1,4 +1,5 @@
 import type { ScanResult, Severity, Verdict } from './types.js';
+import { fingerprintFinding } from './util.js';
 
 const C = {
   reset: '\x1b[0m',
@@ -60,7 +61,8 @@ export function formatResult(result: ScanResult, useColor = true): string {
 
   for (const f of sorted) {
     const sev = paint(useColor, SEV_COLOR[f.severity] + C.bold, SEV_LABEL[f.severity]);
-    lines.push(`  ${sev} ${paint(useColor, C.bold, f.title)} ${paint(useColor, C.gray, f.ruleId)}`);
+    const tag = paint(useColor, C.gray, `${f.ruleId} ${fingerprintFinding(f)}`);
+    lines.push(`  ${sev} ${paint(useColor, C.bold, f.title)} ${tag}`);
     lines.push(`       ${f.message}`);
     if (f.file) {
       const loc = f.line ? `${f.file}:${f.line}` : f.file;

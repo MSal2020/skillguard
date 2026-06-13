@@ -13,4 +13,8 @@ export {
 } from './rules/index.js';
 export { analyzeTool, analyzeTools } from './rules/poisoning.js';
 export { formatResult, SEVERITY_ORDER } from './report.js';
-export { matchInTarget, findLine, hasInvisibleChar } from './util.js';
+export { matchInTarget, findLine, hasInvisibleChar, fingerprintFinding } from './util.js';
+export { knownLocations, currentEnv } from './locations.js';
+export {
+  IGNORE_FILENAME, makeIgnoreMatcher, loadIgnoreEntries, applyIgnore,
+} from './ignore.js';
