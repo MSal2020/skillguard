@@ -194,10 +194,31 @@ The `SEC*` and `PAT*` rules apply to **all** target kinds; `QUA*` are skill-only
 
 ## Use in CI
 
-Gate a pull request that adds or changes skills:
+The **GitHub Action** gates every pull request and annotates findings **inline on the diff**:
 
 ```yaml
-# .github/workflows/skills.yml
+# .github/workflows/skillguard.yml
+name: skillguard
+on: [pull_request]
+jobs:
+  skillguard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: MSal2020/skillguard@main
+        with:
+          path: .              # what to scan
+          min-severity: high   # report this severity and above
+          fail-on: fail        # fail | warn | never
+```
+
+Each finding shows up as a code-scanning annotation on the offending `file:line` (with its
+fingerprint, so you can `.skillguardignore` it), plus a job-summary table of every target's
+verdict. The job fails per `fail-on`.
+
+No Action? The CLI exits non-zero on failure anywhere:
+
+```yaml
 - run: npx skillguard ci ./skills --min-severity high
 ```
 
@@ -288,7 +309,8 @@ Single small dependency (`yaml`); everything else is the Node standard library �
 - [x] **Machine audit** — `skillguard audit` scans every installed client's MCP configs & skills
 - [x] **Allow/ignore file** — `.skillguardignore` with rule / path-glob / fingerprint suppression
 - [ ] **Pre-install hook** — wrap `gh skill` / `skillpm` to scan before anything lands
-- [ ] **GitHub Action** — `skillguard-action@v1` for one-line PR gating
+- [x] **GitHub Action** — one-line PR gating with inline annotations ([action.yml](action.yml))
+- [ ] **Pre-built action bundle** — skip the per-run `npm ci`/build
 - [ ] **SARIF output** — surface findings in GitHub code scanning
 
 ## Contributing

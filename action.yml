@@ -1,0 +1,47 @@
+name: 'skillguard'
+description: 'Audit agent skills & MCP servers for prompt injection, secret exfiltration, and tool poisoning'
+author: 'skillguard'
+branding:
+  icon: 'shield'
+  color: 'purple'
+
+inputs:
+  path:
+    description: 'Path to scan, relative to the repository.'
+    required: false
+    default: '.'
+  command:
+    description: 'What to scan: ci | scan | mcp | skill | tools.'
+    required: false
+    default: 'ci'
+  min-severity:
+    description: 'Only report findings at this severity or above (critical|high|medium|low|info).'
+    required: false
+    default: 'high'
+  fail-on:
+    description: 'Fail the job on this verdict or worse: fail | warn | never.'
+    required: false
+    default: 'fail'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Build skillguard
+      shell: bash
+      run: |
+        cd "$GITHUB_ACTION_PATH"
+        npm ci --no-audit --no-fund --silent
+        npm run build --silent
+    - name: Run skillguard
+      shell: bash
+      env:
+        SG_PATH: ${{ inputs.path }}
+        SG_COMMAND: ${{ inputs.command }}
+        SG_MIN_SEVERITY: ${{ inputs.min-severity }}
+        SG_FAIL_ON: ${{ inputs.fail-on }}
+        SG_WORKSPACE: ${{ github.workspace }}
+      run: node "$GITHUB_ACTION_PATH/action/run.mjs"
