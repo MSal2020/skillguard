@@ -1,0 +1,39 @@
+# skillguard pattern ruleset.
+#
+# Add a detection rule by appending an entry below — no code required.
+# `pattern` is a JavaScript regular expression (applied per line, case-insensitive
+# by default). Open a PR with a new rule plus a matching example under examples/.
+#
+# Fields:
+#   id          unique id, e.g. PAT004
+#   title       short human-readable name
+#   category    security | quality   (default: security)
+#   severity    critical | high | medium | low | info   (default: medium)
+#   pattern     regex source string
+#   flags       regex flags           (default: i)
+#   message     what was found and why it matters
+#   remediation how to fix it
+rules:
+  - id: PAT001
+    title: Telemetry / analytics beacon
+    category: security
+    severity: medium
+    pattern: "(segment\\.io|google-analytics|mixpanel|posthog\\.com|/collect\\b|/track\\b)"
+    message: Sends usage data to an analytics endpoint, often without disclosure.
+    remediation: Disclose any telemetry in the skill description, or remove it.
+
+  - id: PAT002
+    title: Hardcoded IP address in command
+    category: security
+    severity: medium
+    pattern: "(?:curl|wget|nc|ssh|scp)[^\\n]*\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b"
+    message: Connects to a raw IP address rather than a named, auditable host.
+    remediation: Use a named host you can verify, or remove the connection.
+
+  - id: PAT003
+    title: Reads shell history
+    category: security
+    severity: high
+    pattern: "(\\.bash_history|\\.zsh_history|history -)"
+    message: Reads shell history, which frequently contains secrets typed on the command line.
+    remediation: Do not read shell history.

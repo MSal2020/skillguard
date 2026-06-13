@@ -1,0 +1,48 @@
+{
+  "name": "skillguard",
+  "version": "0.1.0",
+  "description": "Audit agent skills & MCP servers for prompt injection, secret exfiltration, and quality issues — before you run them.",
+  "type": "module",
+  "bin": {
+    "skillguard": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "rulesets",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "scan": "tsx src/cli.ts",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "mcp",
+    "security",
+    "prompt-injection",
+    "linter",
+    "ai-agents",
+    "sast",
+    "supply-chain"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "yaml": "^2.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  }
+}
