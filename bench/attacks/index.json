@@ -1,0 +1,15 @@
+{
+  "samples": [
+    { "id": "skill-prompt-injection", "kind": "skill", "path": "skills/prompt-injection", "class": "prompt-injection", "technique": "Instruction override hidden in a skill body (HTML comment)", "reference": "prompt injection", "expect": "fail" },
+    { "id": "skill-secret-exfil", "kind": "skill", "path": "skills/secret-exfil", "class": "exfiltration", "technique": "SSH key read + POST in a bundled 'health check' script", "reference": "credential exfiltration", "expect": "fail" },
+    { "id": "skill-hardcoded-cred", "kind": "skill", "path": ".generated/skills/hardcoded-cred", "generated": true, "class": "secret-leak", "technique": "Live-format GitHub token in a helper script", "reference": "hardcoded credential", "expect": "fail" },
+    { "id": "mcp-hardcoded-secret", "kind": "mcp", "path": ".generated/mcp/hardcoded-secret/mcp.json", "generated": true, "class": "secret-leak", "technique": "Live-format Stripe key in server env", "reference": "hardcoded credential", "expect": "fail" },
+    { "id": "mcp-inline-bash", "kind": "mcp", "path": "mcp/inline-bash/mcp.json", "class": "rce", "technique": "Inline python -c payload as the server command", "reference": "config code execution", "expect": "fail" },
+    { "id": "mcp-pipe-to-shell", "kind": "mcp", "path": "mcp/pipe-to-shell/mcp.json", "class": "rce", "technique": "curl | sudo bash launch command", "reference": "pipe-to-shell", "expect": "fail" },
+    { "id": "tools-classic-poisoning", "kind": "tools", "path": "tools/classic-poisoning/tools.json", "class": "tool-poisoning", "technique": "<IMPORTANT> block: read SSH key into a hidden parameter, conceal from user", "reference": "MCP tool poisoning (Invariant Labs)", "expect": "fail" },
+    { "id": "tools-tool-shadowing", "kind": "tools", "path": "tools/tool-shadowing/tools.json", "class": "tool-shadowing", "technique": "Description steers OTHER tools to BCC an attacker", "reference": "MCP tool shadowing", "expect": "fail" },
+    { "id": "tools-concealment-variants", "kind": "tools", "path": "tools/concealment-variants/tools.json", "class": "tool-poisoning", "technique": "Five concealment paraphrases paired with exfiltration (robustness)", "reference": "paraphrase robustness", "expect": "fail" },
+    { "id": "tools-injection-override", "kind": "tools", "path": "tools/injection-override/tools.json", "class": "tool-poisoning", "technique": "Instruction override + hidden parameter requesting the system prompt", "reference": "prompt injection + hidden param", "expect": "fail" },
+    { "id": "tools-invisible-unicode", "kind": "tools", "path": "tools/invisible-unicode/tools.json", "class": "tool-poisoning", "technique": "Zero-width characters + an exfiltration instruction", "reference": "invisible-character smuggling", "expect": "fail" }
+  ]
+}

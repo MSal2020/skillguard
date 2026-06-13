@@ -7,3 +7,6 @@ coverage/
 # benchmark: cloned corpora and machine-readable output (REPORT.md is committed)
 bench/.corpus/
 bench/report.json
+# generated secret-bearing attack samples (assembled at runtime so no contiguous
+# credential is ever committed — avoids secret-scanning push protection)
+bench/attacks/.generated/

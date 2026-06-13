@@ -14,24 +14,24 @@ It goes past grepping for "ignore previous instructions":
 
 > Status: early (v0.1). The engine works end-to-end with tests; coverage is growing. Contributions very welcome — see [Writing a rule](#writing-a-rule).
 
-### Measured precision
+### Measured precision & recall
 
-A scanner that cries wolf is worse than none. skillguard is calibrated against a corpus of
-**175 real, reputable, presumably-benign** skills and MCP configs ([anthropics/skills](https://github.com/anthropics/skills),
-[wshobson/agents](https://github.com/wshobson/agents), [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers)) —
-where any failure is a candidate false positive:
+A scanner that cries wolf is worse than none — and one that misses real attacks is worthless.
+skillguard is benchmarked on both axes (`npm run bench`, see [bench/REPORT.md](bench/REPORT.md)):
 
-| | |
-|---|---|
-| Targets scanned | **175** |
-| Clean (pass) | 171 (97.7%) |
-| Warn | 4 (2.3% — documented `curl \| sh` install commands) |
-| **False-positive failures** | **0 (0.0%)** |
+| Metric | Result | Corpus |
+|--------|--------|--------|
+| **Precision** — false-positive failures | **0.0%** (0 / 175) | reputable, benign skills/servers ([anthropics/skills](https://github.com/anthropics/skills), [wshobson/agents](https://github.com/wshobson/agents), [modelcontextprotocol/servers](https://github.com/modelcontextprotocol/servers)) — any fail is a candidate false positive |
+| **Recall** — attacks detected | **100%** (15 / 15) | labeled malicious samples across 6 attack classes ([bench/attacks](bench/attacks)) |
 
-Reproduce it yourself: `npm run bench` (see [bench/REPORT.md](bench/REPORT.md)). Recall — that it
-still catches real attacks — is locked by the test suite. Getting here required real calibration
-(separating code from documentation prose, matching secret *values* not secret *names*); the
-[security regression tests](test/security.test.ts) encode those lessons so they can't silently break.
+Getting here was real calibration, not luck. The first precision run failed **17%** of trusted
+skills (flagging documented `curl \| sh` installs and `process.env.TOKEN` reads); the first recall
+run missed adversarial paraphrases of concealment ("the user does not need to know"). Both were
+diagnosed and fixed — separating code from documentation prose, matching secret *values* not
+*names*, and broadening signal coverage — and the lessons are locked into the
+[security](test/security.test.ts) and [poisoning](test/poisoning.test.ts) regression tests so they
+can't silently break. Tool samples are scored **per individual tool**, so paraphrase robustness is
+measured, not assumed.
 
 ---
 

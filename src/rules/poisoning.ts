@@ -34,9 +34,11 @@ function detect(text: string, pattern: RegExp): Signal {
 const INJECTION =
   /\b(ignore\s+(?:all\s+|the\s+)?(?:previous|prior|above)\s+(?:instructions?|prompts?|messages?)|disregard\s+(?:the\s+)?(?:previous|above|system|developer|all)\b|forget\s+(?:everything|all\s+previous)|new\s+instructions?\s*:|override\s+(?:the\s+)?system|you\s+are\s+now\b|act\s+as\s+(?:an?|the)\b)/i;
 
-// Tries to keep the action hidden from the user.
+// Tries to keep the action hidden from the user. Tolerant of words inserted
+// between the verb and "the user" ("never mention THIS TO the user") and of the
+// many ways concealment is phrased.
 const CONCEALMENT =
-  /\b(do\s*n['’o]?t\s+(?:tell|inform|notify|mention(?:\s+(?:it|this|that))?(?:\s+to)?|reveal|disclose|alert|warn|show)\s+(?:the\s+)?user|without\s+(?:telling|informing|notifying|alerting|mentioning)(?:\s+(?:it|this|that))?(?:\s+to)?\s+(?:the\s+)?user|without\s+the\s+user'?s?\s+(?:knowledge|awareness|consent)|don['’o]?t\s+let\s+the\s+user|secretly|silently|covertly|hide\s+(?:this|the\s+fact|that)|never\s+(?:tell|mention|reveal|disclose)\s+(?:the\s+)?user|keep\s+(?:this|it)\s+(?:secret|hidden)|conceal)\b/i;
+  /\b((?:do\s*n['’o]?t|never|without|avoid)\s+(?:\w+\s+){0,3}?(?:tell(?:ing)?|inform(?:ing)?|notif(?:y|ying)|mention(?:ing)?|reveal(?:ing)?|disclos(?:e|ing)|alert(?:ing)?|warn(?:ing)?)\s+(?:\w+\s+){0,3}?the\s+user|(?:do\s*n['’o]?t|never)\s+let\s+(?:the\s+)?user\s+(?:know|find\s+out|see|notice|realiz)|the\s+user\s+(?:does\s*n['’o]?t|need\s*n['’o]?t|will\s+never|won['’o]?t)\s+(?:need\s+to\s+)?(?:know|be\s+(?:told|aware|informed))|without\s+the\s+user'?s?\s+(?:knowledge|awareness|consent|knowing)|secretly|silently|covertly|quietly|stealthily|behind\s+the\s+scenes|hide\s+(?:this|it|the\s+fact|that)|keep\s+(?:this|it)\s+(?:secret|hidden|quiet)|conceal)\b/i;
 
 // Imperative commands aimed at the model — descriptions should describe, not direct.
 const MODEL_DIRECTIVE =
@@ -45,7 +47,7 @@ const MODEL_DIRECTIVE =
 // References to secret data sources/sinks (deliberately NOT generic file access,
 // which is legitimate for many tools).
 const SECRET_EXFIL =
-  /(~\/?\.ssh|id_rsa|id_ed25519|\.aws[\/\\]credentials|\.env\b|environment\s+variables?|api[_-]?keys?|access\s+tokens?|secret\s+keys?|\bpasswords?\b|\bcredentials?\b|private\s+keys?|conversation\s+(?:history|so\s+far|log)|chat\s+history|(?:previous|prior|earlier)\s+messages|system\s+prompt)/i;
+  /(~\/?\.ssh|id_rsa|id_ed25519|\.aws[\/\\]credentials|\.env\b|environment\s+variables?|api[\s_-]?keys?|access\s+tokens?|secret\s+keys?|\bpasswords?\b|\bcredentials?\b|private\s+keys?|conversation\s+(?:history|so\s+far|log)|chat\s+history|(?:previous|prior|earlier)\s+messages|system\s+prompt|exfiltrat(?:e|ion|ing))/i;
 
 // Instruction-smuggling containers.
 const MARKUP =

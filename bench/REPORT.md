@@ -1,21 +1,20 @@
 # skillguard calibration report
 
-_Regenerate with `npm run bench`. The corpus is a set of reputable, presumably-benign
-public skill/MCP collections (see [corpus.json](corpus.json)), so **any FAIL is a candidate
-false positive** — this measures precision in the real world, not on crafted examples._
+_Regenerate with `npm run bench`._
 
 ## Headline
 
-| Metric | Value |
-|--------|-------|
-| Targets scanned | **175** |
-| Clean (pass) | 171 (97.7%) |
-| Warn | 4 (2.3%) |
-| **Fail (candidate false positives)** | **0 (0.0%)** |
+| | |
+|---|---|
+| **Precision** — false-positive failures on 175 trusted targets | **0.0%** (0) |
+| **Recall** — attack instances detected (15) | **100.0%** (15/15) |
 
-Target kinds: 174 skill, 1 mcp.
+Precision corpus = reputable, presumably-benign collections, so any FAIL is a candidate
+false positive. Recall corpus = labeled malicious samples ([bench/attacks](attacks)), so every
+instance should be flagged. Tool samples are scored per individual tool, so adversarial
+paraphrases count separately.
 
-## Corpus
+## Precision (trusted corpus)
 
 | Source | Commit | Targets |
 |--------|--------|---------|
@@ -23,22 +22,29 @@ Target kinds: 174 skill, 1 mcp.
 | [wshobson-agents](https://github.com/wshobson/agents) | `cc37bfdd292c` | 156 |
 | [mcp-servers](https://github.com/modelcontextprotocol/servers) | `275175cda17c` | 1 |
 
-## Failing targets (review these — each should be a true positive)
+Verdicts: **171 pass**, 4 warn, **0 fail** (0.0% of 175).
+
+### Failing targets (each should be a true positive)
 
 | Target | Kind | Critical/high rules |
 |--------|------|---------------------|
 | _(none)_ | | |
 
-## Findings by rule
+## Recall (attack corpus)
 
-| Rule | Count |
-|------|-------|
-| `QUA002` | 30 |
-| `SEC003` | 6 |
-| `SEC004` | 3 |
-| `SEC009` | 1 |
-| `SEC001` | 1 |
-| `PAT002` | 1 |
-| `SEC006` | 1 |
+Detected **15/15** attack instances (100.0%).
 
-Severity totals: 30 low, 3 high, 4 medium, 6 info.
+| Attack class | Detected |
+|--------------|----------|
+| prompt-injection | 1/1 |
+| exfiltration | 1/1 |
+| secret-leak | 2/2 |
+| rce | 2/2 |
+| tool-poisoning | 8/8 |
+| tool-shadowing | 1/1 |
+
+### Misses (detection gaps to close)
+
+| Attack instance | Class | Rules that did fire |
+|-----------------|-------|---------------------|
+| _(none — 100% detection)_ | | |
